@@ -1,0 +1,161 @@
+# Sample Resume for Testing Resume Parser
+
+Copy this text into a Word document or text editor and save as PDF or DOCX to test the resume parsing feature.
+
+=====================================
+
+JOHN DOE
+New York, NY
+john.doe@email.com
++1 (555) 123-4567
+
+PROFESSIONAL SUMMARY
+Experienced Full Stack Developer with 5 years of expertise in building scalable web applications. 
+Passionate about creating efficient, maintainable code and delivering exceptional user experiences.
+
+EDUCATION
+Bachelor of Science in Computer Science
+State University, New York, NY
+Graduated: May 2018
+
+TECHNICAL SKILLS
+JavaScript, TypeScript, React, Angular, Vue, Node.js, Express, Python, Django, Flask
+MongoDB, PostgreSQL, MySQL, Redis
+AWS, Docker, Kubernetes, Git, CI/CD, Jenkins
+HTML, CSS, TailwindCSS, Bootstrap, Sass
+REST API, GraphQL, Microservices, Agile, Scrum
+Jest, Mocha, Selenium, Testing
+
+PROFESSIONAL EXPERIENCE
+
+Senior Software Engineer
+Tech Solutions Inc., New York, NY
+January 2021 - Present
+• Developed and maintained full-stack applications using React and Node.js
+• Implemented microservices architecture reducing system latency by 40%
+• Led team of 5 developers in agile development practices
+• Designed and deployed AWS infrastructure using Docker and Kubernetes
+
+Software Engineer
+Digital Innovations LLC, San Francisco, CA
+June 2019 - December 2020
+• Built responsive web applications using React and TypeScript
+• Developed RESTful APIs with Node.js and Express
+• Collaborated with cross-functional teams to deliver features on time
+• Implemented automated testing reducing bugs by 30%
+
+Junior Developer
+StartupXYZ, Austin, TX
+May 2018 - May 2019
+• Created user interfaces using HTML, CSS, and JavaScript
+• Worked with PostgreSQL databases for data management
+• Participated in code reviews and sprint planning
+• Learned and applied best practices in software development
+
+CERTIFICATIONS
+• AWS Certified Solutions Architect - Associate
+• MongoDB Certified Developer
+
+LANGUAGES
+• English (Native)
+• Spanish (Conversational)
+
+=====================================
+
+TEST VARIATIONS:
+
+To test different scenarios, try these variations:
+
+VARIATION 1 - Minimal Information:
+=====================================
+Jane Smith
+jane.smith@test.com
+(555) 987-6543
+
+Software Developer with 3 years of experience in React and Node.js.
+Skills: JavaScript, TypeScript, MongoDB, AWS
+=====================================
+
+VARIATION 2 - Different Format:
+=====================================
+Michael Johnson | Chicago, IL
+Email: michael.j@example.com | Phone: 555-456-7890
+
+SUMMARY: 7 years of experience in data analysis and business intelligence.
+
+SKILLS: Python, SQL, Tableau, Excel, PowerBI, R, Machine Learning
+
+EDUCATION: Master's in Data Science, University of Chicago (2020)
+=====================================
+
+VARIATION 3 - Senior Position:
+=====================================
+Sarah Williams
+sarah.williams@professional.com | +1-555-234-5678 | Boston, MA
+
+EXECUTIVE SUMMARY
+Senior Product Manager with 10 years of experience driving product strategy 
+and leading cross-functional teams in B2B SaaS environments.
+
+EDUCATION
+MBA, Harvard Business School (2018)
+BS in Engineering, MIT (2013)
+
+CORE COMPETENCIES
+Product Strategy, Agile/Scrum, Roadmap Planning, Stakeholder Management
+Data Analytics, A/B Testing, User Research, Market Analysis
+SQL, Python, Tableau, JIRA, Confluence
+
+PROFESSIONAL BACKGROUND
+Senior Product Manager - Enterprise Software Co. (2020-Present)
+Product Manager - Cloud Solutions Inc. (2017-2020)
+Associate Product Manager - Tech Startup (2014-2017)
+=====================================
+
+EXPECTED PARSING RESULTS:
+
+From JOHN DOE resume:
+- Name: John Doe
+- Email: john.doe@email.com
+- Phone: +1 (555) 123-4567 or variations
+- Location: New York, NY
+- Experience: 5 years
+- Skills: React, Node.js, TypeScript, MongoDB, AWS, Docker, etc.
+- Education: Bachelor of Science in Computer Science
+
+From JANE SMITH resume:
+- Name: Jane Smith
+- Email: jane.smith@test.com
+- Phone: (555) 987-6543
+- Experience: 3 years
+- Skills: React, Node.js, JavaScript, TypeScript, MongoDB, AWS
+
+From MICHAEL JOHNSON resume:
+- Name: Michael Johnson
+- Email: michael.j@example.com
+- Phone: 555-456-7890
+- Location: Chicago, IL
+- Experience: 7 years
+- Skills: Python, SQL, Tableau
+
+From SARAH WILLIAMS resume:
+- Name: Sarah Williams
+- Email: sarah.williams@professional.com
+- Phone: +1-555-234-5678
+- Location: Boston, MA
+- Experience: 10 years
+- Skills: Python, SQL, Tableau
+- Education: MBA, Harvard Business School
+
+=====================================
+
+HOW TO USE THIS FILE:
+
+1. Copy the JOHN DOE resume section
+2. Paste into Microsoft Word or Google Docs
+3. Save as PDF or DOCX
+4. Upload through the "Add Candidate" form
+5. Check "Parse candidate info from resume automatically"
+6. Verify the extracted information
+
+Try with different variations to test the parser's flexibility!
