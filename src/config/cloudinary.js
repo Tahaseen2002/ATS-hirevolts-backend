@@ -18,6 +18,7 @@ export const cloudinaryStorage = new CloudinaryStorage({
     folder: 'resumes', // Folder name in Cloudinary
     allowed_formats: ['pdf', 'doc', 'docx'],
     resource_type: 'raw', // Important for non-image files like PDFs
+    flags: 'attachment:false', // Try to prevent auto-download
     public_id: (req, file) => {
       // Generate unique filename
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
