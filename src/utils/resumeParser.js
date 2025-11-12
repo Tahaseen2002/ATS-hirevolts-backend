@@ -1,20 +1,57 @@
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import fs from 'fs/promises';
+import https from 'https';
+import http from 'http';
+
+/**
+ * Download file from URL to buffer
+ */
+async function downloadFile(url) {
+  return new Promise((resolve, reject) => {
+    const protocol = url.startsWith('https') ? https : http;
+    protocol.get(url, (response) => {
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => resolve(Buffer.concat(chunks)));
+      response.on('error', reject);
+    }).on('error', reject);
+  });
+}
 
 /**
  * Extract text from PDF or DOCX files
  */
 export async function extractTextFromFile(filePath, mimeType) {
   try {
+    let dataBuffer;
+    
+    // Check if filePath is a URL (Cloudinary)
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      // Download file from URL
+      dataBuffer = await downloadFile(filePath);
+    } else {
+      // Read from local file system
+      dataBuffer = await fs.readFile(filePath);
+    }
+
     if (mimeType === 'application/pdf') {
-      const dataBuffer = await fs.readFile(filePath);
       const data = await pdfParse(dataBuffer);
       return data.text;
     } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                mimeType === 'application/msword') {
-      const result = await mammoth.extractRawText({ path: filePath });
-      return result.value;
+      // For DOCX, if it's a URL, we need to save temporarily
+      if (filePath.startsWith('http')) {
+        const tempPath = `/tmp/temp-resume-${Date.now()}.docx`;
+        await fs.writeFile(tempPath, dataBuffer);
+        const result = await mammoth.extractRawText({ path: tempPath });
+        // Clean up temp file
+        await fs.unlink(tempPath).catch(() => {});
+        return result.value;
+      } else {
+        const result = await mammoth.extractRawText({ path: filePath });
+        return result.value;
+      }
     }
     return '';
   } catch (error) {

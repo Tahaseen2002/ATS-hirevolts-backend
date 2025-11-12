@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
@@ -25,7 +26,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const uploadsPath = path.join(__dirname, '../uploads');
+// Ensure uploads directory exists
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsPath));
 
 // Database connection
 connectDB();
@@ -45,6 +51,26 @@ app.use('/api/jobs', jobRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
+});
+
+// Debug endpoint to list uploaded files
+app.get('/api/uploads/list', (req, res) => {
+  const uploadsDir = path.join(__dirname, '../uploads');
+  if (fs.existsSync(uploadsDir)) {
+    const files = fs.readdirSync(uploadsDir);
+    res.json({ 
+      exists: true, 
+      count: files.length,
+      files: files,
+      path: uploadsDir
+    });
+  } else {
+    res.json({ 
+      exists: false, 
+      message: 'Uploads directory does not exist',
+      path: uploadsDir
+    });
+  }
 });
 
 app.listen(PORT, () => {

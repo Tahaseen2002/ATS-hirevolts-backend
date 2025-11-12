@@ -50,8 +50,12 @@ export async function createCandidateWithResume(req, res) {
       return res.status(400).json({ message: 'No resume file uploaded' });
     }
 
+    // For Cloudinary, req.file.path is the URL; for local, it's the file path
+    const isCloudinary = req.file.path.startsWith('http');
+    const resumeFilePath = isCloudinary ? req.file.path : req.file.path;
+
     // Extract text from resume
-    const resumeText = await extractTextFromFile(req.file.path, req.file.mimetype);
+    const resumeText = await extractTextFromFile(resumeFilePath, req.file.mimetype);
     
     // Parse resume data
     const parsedData = parseResumeData(resumeText);
@@ -82,7 +86,7 @@ export async function createCandidateWithResume(req, res) {
         return parsedData.skills || [];
       })(),
       status: isValidValue(req.body.status) ? req.body.status : 'New',
-      resumeUrl: req.file.path,
+      resumeUrl: isCloudinary ? req.file.path : req.file.path, // Cloudinary URL or local path
       resumeText: resumeText,
       education: parsedData.education || req.body.education,
       summary: parsedData.summary || req.body.summary
@@ -90,13 +94,17 @@ export async function createCandidateWithResume(req, res) {
 
     // Validate required fields
     if (!candidateData.email) {
-      // Clean up uploaded file
-      await fs.unlink(req.file.path);
+      // Clean up uploaded file (only for local storage)
+      if (!isCloudinary) {
+        await fs.unlink(req.file.path);
+      }
       return res.status(400).json({ message: 'Email is required. Could not extract from resume.' });
     }
 
     if (!candidateData.phone) {
-      await fs.unlink(req.file.path);
+      if (!isCloudinary) {
+        await fs.unlink(req.file.path);
+      }
       return res.status(400).json({ message: 'Phone is required. Could not extract from resume.' });
     }
 
@@ -109,8 +117,8 @@ export async function createCandidateWithResume(req, res) {
       parsedData: parsedData
     });
   } catch (error) {
-    // Clean up uploaded file on error
-    if (req.file) {
+    // Clean up uploaded file on error (only for local storage)
+    if (req.file && !req.file.path.startsWith('http')) {
       try {
         await fs.unlink(req.file.path);
       } catch (unlinkError) {
@@ -128,13 +136,15 @@ export async function parseResumeOnly(req, res) {
       return res.status(400).json({ message: 'No resume file uploaded' });
     }
 
+    const isCloudinary = req.file.path.startsWith('http');
+
     // Extract text from resume
     const resumeText = await extractTextFromFile(req.file.path, req.file.mimetype);
     
     // Parse resume data
     const parsedData = parseResumeData(resumeText);
 
-    // Keep the file temporarily (return the path for later use)
+    // Keep the file path/URL
     const resumePath = req.file.path;
 
     res.status(200).json({
@@ -153,8 +163,8 @@ export async function parseResumeOnly(req, res) {
       resumeText: resumeText
     });
   } catch (error) {
-    // Clean up uploaded file on error
-    if (req.file) {
+    // Clean up uploaded file on error (only for local storage)
+    if (req.file && !req.file.path.startsWith('http')) {
       try {
         await fs.unlink(req.file.path);
       } catch (unlinkError) {
