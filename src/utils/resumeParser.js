@@ -61,6 +61,177 @@ export async function extractTextFromFile(filePath, mimeType) {
 }
 
 /**
+ * Parse work experience from resume text
+ */
+function parseWorkExperience(text, lines) {
+  const workExperience = [];
+  
+  // Find the work experience section
+  const experienceKeywords = [
+    'work experience', 'professional experience', 'employment history',
+    'work history', 'experience', 'employment', 'career history'
+  ];
+  
+  let experienceStartIndex = -1;
+  let experienceEndIndex = lines.length;
+  
+  // Find start of experience section
+  for (let i = 0; i < lines.length; i++) {
+    const lineLower = lines[i].toLowerCase().trim();
+    if (experienceKeywords.some(keyword => 
+      lineLower === keyword || 
+      lineLower === keyword + ':' ||
+      (lineLower.length < 30 && lineLower.startsWith(keyword))
+    )) {
+      experienceStartIndex = i;
+      break;
+    }
+  }
+  
+  if (experienceStartIndex === -1) return workExperience;
+  
+  // Find end of experience section (next major section)
+  const sectionHeaders = ['education', 'skills', 'certifications', 'projects', 'achievements'];
+  for (let i = experienceStartIndex + 1; i < lines.length; i++) {
+    const lineLower = lines[i].toLowerCase().trim();
+    if (sectionHeaders.some(header => 
+      lineLower === header || 
+      lineLower === header + ':' ||
+      (lineLower.length < 30 && lineLower.startsWith(header))
+    )) {
+      experienceEndIndex = i;
+      break;
+    }
+  }
+  
+  // Parse individual job entries
+  const experienceLines = lines.slice(experienceStartIndex + 1, experienceEndIndex);
+  
+  let currentJob = null;
+  
+  for (let i = 0; i < experienceLines.length; i++) {
+    const line = experienceLines[i].trim();
+    if (!line) continue;
+    
+    // Check if this line contains a date range (likely a job entry)
+    const datePatterns = [
+      /(\w+\s+\d{4})\s*[-–—]\s*(\w+\s+\d{4}|present|current)/i,  // Jan 2020 - Dec 2022
+      /(\d{4})\s*[-–—]\s*(\d{4}|present|current)/i,                // 2020 - 2022
+      /(\d{2}\/\d{4})\s*[-–—]\s*(\d{2}\/\d{4}|present|current)/i  // 01/2020 - 12/2022
+    ];
+    
+    const hasDateRange = datePatterns.some(pattern => pattern.test(line));
+    
+    // If we found a new job entry, save the previous one
+    if (hasDateRange && currentJob) {
+      workExperience.push(currentJob);
+      currentJob = null;
+    }
+    
+    // Try to identify company, position, and duration
+    if (!currentJob || hasDateRange) {
+      // Extract date range
+      let duration = '';
+      for (const pattern of datePatterns) {
+        const match = line.match(pattern);
+        if (match) {
+          duration = match[0];
+          break;
+        }
+      }
+      
+      if (duration) {
+        // Look for position (usually before or after the date)
+        const positionPatterns = [
+          /([A-Z][\w\s&-]+(?:Engineer|Developer|Designer|Manager|Lead|Analyst|Specialist|Consultant|Architect|Director))/,
+          /([A-Z][\w\s&-]+(?:position|role))/i
+        ];
+        
+        let position = '';
+        let company = '';
+        
+        // Check current line for position
+        for (const pattern of positionPatterns) {
+          const match = line.match(pattern);
+          if (match) {
+            position = match[1].trim();
+            break;
+          }
+        }
+        
+        // Look for company (usually has "Inc", "LLC", "Ltd", or is capitalized)
+        const companyPatterns = [
+          /([A-Z][\w\s&.]+(?:Inc|LLC|Ltd|Corporation|Corp|Company|Co\.|Solutions|Technologies|Tech|Systems|Services|Group))/,
+          /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/  // Multi-word capitalized names
+        ];
+        
+        // Check previous line for company
+        if (i > 0) {
+          const prevLine = experienceLines[i - 1].trim();
+          for (const pattern of companyPatterns) {
+            const match = prevLine.match(pattern);
+            if (match) {
+              company = match[1].trim();
+              break;
+            }
+          }
+        }
+        
+        // Check current line for company if not found
+        if (!company) {
+          for (const pattern of companyPatterns) {
+            const match = line.match(pattern);
+            if (match && match[1] !== position) {
+              company = match[1].trim();
+              break;
+            }
+          }
+        }
+        
+        // Check next line for company if still not found
+        if (!company && i < experienceLines.length - 1) {
+          const nextLine = experienceLines[i + 1].trim();
+          for (const pattern of companyPatterns) {
+            const match = nextLine.match(pattern);
+            if (match) {
+              company = match[1].trim();
+              break;
+            }
+          }
+        }
+        
+        currentJob = {
+          company: company || 'Unknown Company',
+          position: position || 'Unknown Position',
+          duration: duration,
+          description: []
+        };
+      }
+    } else if (currentJob) {
+      // Add description lines (bullet points or paragraphs)
+      if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
+        currentJob.description.push(line.replace(/^[•\-*]\s*/, '').trim());
+      } else if (line.length > 20 && !line.match(/^[A-Z\s]+$/)) {
+        // Add as description if it's not all caps (likely a section header)
+        currentJob.description.push(line);
+      }
+    }
+  }
+  
+  // Add the last job
+  if (currentJob) {
+    workExperience.push(currentJob);
+  }
+  
+  // Clean up descriptions - limit to 3 bullet points per job
+  workExperience.forEach(job => {
+    job.description = job.description.slice(0, 3).join(' | ');
+  });
+  
+  return workExperience;
+}
+
+/**
  * Parse resume text to extract candidate information
  */
 export function parseResumeData(text) {
@@ -70,6 +241,7 @@ export function parseResumeData(text) {
     phone: '',
     skills: [],
     experience: 0,
+    workExperience: [],  // NEW: Detailed work experience
     education: '',
     location: '',
     summary: ''
@@ -294,6 +466,9 @@ export function parseResumeData(text) {
       break;
     }
   }
+
+  // Extract detailed work experience
+  data.workExperience = parseWorkExperience(text, lines);
 
   // Extract education
   const educationKeywords = ['bachelor', 'master', 'phd', 'b.s.', 'm.s.', 'b.tech', 'm.tech', 'mba', 'degree'];

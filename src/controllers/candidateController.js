@@ -45,7 +45,8 @@ export async function createCandidate(req, res) {
       ...req.body,
       skills: typeof req.body.skills === 'string' 
         ? req.body.skills.split(',').map(s => s.trim()) 
-        : req.body.skills
+        : req.body.skills,
+      workExperience: req.body.workExperience || []
     };
 
     const candidate = new Candidate(candidateData);
@@ -102,6 +103,14 @@ export async function createCandidateWithResume(req, res) {
             : req.body.skills;
         }
         return parsedData.skills || [];
+      })(),
+      workExperience: (() => {
+        if (req.body.workExperience) {
+          return typeof req.body.workExperience === 'string'
+            ? JSON.parse(req.body.workExperience)
+            : req.body.workExperience;
+        }
+        return parsedData.workExperience || [];
       })(),
       status: isValidValue(req.body.status) ? req.body.status : 'New',
       resumeUrl: isCloudinary ? req.file.path : req.file.path, // Cloudinary URL or local path
@@ -179,6 +188,7 @@ export async function parseResumeOnly(req, res) {
         experience: parsedData.experience || 0,
         location: parsedData.location || '',
         skills: parsedData.skills || [],
+        workExperience: parsedData.workExperience || [],
         education: parsedData.education || '',
         summary: parsedData.summary || ''
       },

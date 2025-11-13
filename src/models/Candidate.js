@@ -28,6 +28,23 @@ const candidateSchema = new mongoose.Schema({
     required: true,
     default: 0
   },
+  workExperience: [{
+    company: {
+      type: String,
+      trim: true
+    },
+    position: {
+      type: String,
+      trim: true
+    },
+    duration: {
+      type: String,
+      trim: true
+    },
+    description: {
+      type: String
+    }
+  }],
   status: {
     type: String,
     enum: ['New', 'Screening', 'Interview', 'Offer', 'Rejected', 'Hired'],
