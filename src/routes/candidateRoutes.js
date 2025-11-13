@@ -7,7 +7,8 @@ import {
   createCandidateWithResume,
   parseResumeOnly,
   updateCandidate,
-  deleteCandidate
+  deleteCandidate,
+  viewResume
 } from '../controllers/candidateController.js';
 
 const router = express.Router();
@@ -313,5 +314,34 @@ router.put('/:id', updateCandidate);
  *         description: Server error
  */
 router.delete('/:id', deleteCandidate);
+
+/**
+ * @swagger
+ * /api/candidates/{id}/view-resume:
+ *   get:
+ *     summary: View candidate resume inline
+ *     tags: [Candidates]
+ *     description: Get candidate resume for inline viewing (no download)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Candidate ID
+ *     responses:
+ *       200:
+ *         description: Resume file
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Candidate or resume not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/:id/view-resume', viewResume);
 
 export default router;

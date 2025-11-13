@@ -1,6 +1,7 @@
 import Candidate from '../models/Candidate.js';
 import { extractTextFromFile, parseResumeData } from '../utils/resumeParser.js';
 import fs from 'fs/promises';
+import axios from 'axios';
 
 // Get all candidates
 export async function getAllCandidates(req, res) {
@@ -221,5 +222,62 @@ export async function deleteCandidate(req, res) {
     res.json({ message: 'Candidate deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting candidate', error: error.message });
+  }
+}
+
+// View resume with inline display
+export async function viewResume(req, res) {
+  try {
+    const candidate = await Candidate.findById(req.params.id);
+    
+    if (!candidate) {
+      return res.status(404).json({ message: 'Candidate not found' });
+    }
+
+    if (!candidate.resumeUrl) {
+      return res.status(404).json({ message: 'Resume not found' });
+    }
+
+    // If it's a Cloudinary URL, fetch and serve with inline headers
+    if (candidate.resumeUrl.startsWith('http')) {
+      try {
+        const response = await axios.get(candidate.resumeUrl, {
+          responseType: 'arraybuffer'
+        });
+
+        // Determine content type from URL or default to PDF
+        let contentType = 'application/pdf';
+        if (candidate.resumeUrl.includes('.doc')) {
+          contentType = 'application/msword';
+        } else if (candidate.resumeUrl.includes('.docx')) {
+          contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        }
+
+        // Set headers to display inline
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', 'inline');
+        res.send(Buffer.from(response.data));
+      } catch (error) {
+        console.error('Error fetching resume:', error);
+        res.status(500).json({ message: 'Error fetching resume from Cloudinary' });
+      }
+    } else {
+      // Local file - serve directly
+      try {
+        const fileBuffer = await fs.readFile(candidate.resumeUrl);
+        const contentType = candidate.resumeUrl.endsWith('.pdf') 
+          ? 'application/pdf' 
+          : 'application/msword';
+        
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', 'inline');
+        res.send(fileBuffer);
+      } catch (error) {
+        console.error('Error reading file:', error);
+        res.status(500).json({ message: 'Error reading resume file' });
+      }
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Error viewing resume', error: error.message });
   }
 }
