@@ -14,8 +14,16 @@ const options = {
     },
     servers: [
       {
+        url: process.env.API_URL || 'http://localhost:5000',
+        description: 'API Server'
+      },
+      {
         url: 'http://localhost:5000',
-        description: 'Development server'
+        description: 'Local Development'
+      },
+      {
+        url: 'https://ats-portal-hirevolts.onrender.com',
+        description: 'Production Server'
       }
     ],
     components: {

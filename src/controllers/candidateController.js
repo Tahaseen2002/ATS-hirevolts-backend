@@ -7,7 +7,15 @@ import axios from 'axios';
 export async function getAllCandidates(req, res) {
   try {
     const candidates = await Candidate.find().sort({ appliedDate: -1 });
-    res.json(candidates);
+    // Add viewUrl to each candidate
+    const candidatesWithViewUrl = candidates.map(candidate => {
+      const candidateObj = candidate.toObject();
+      if (candidateObj.resumeUrl) {
+        candidateObj.viewUrl = `/api/candidates/${candidateObj._id}/view-resume`;
+      }
+      return candidateObj;
+    });
+    res.json(candidatesWithViewUrl);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching candidates', error: error.message });
   }
@@ -20,7 +28,11 @@ export async function getCandidateById(req, res) {
     if (!candidate) {
       return res.status(404).json({ message: 'Candidate not found' });
     }
-    res.json(candidate);
+    const candidateObj = candidate.toObject();
+    if (candidateObj.resumeUrl) {
+      candidateObj.viewUrl = `/api/candidates/${candidateObj._id}/view-resume`;
+    }
+    res.json(candidateObj);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching candidate', error: error.message });
   }
@@ -38,7 +50,12 @@ export async function createCandidate(req, res) {
 
     const candidate = new Candidate(candidateData);
     await candidate.save();
-    res.status(201).json(candidate);
+    
+    const candidateObj = candidate.toObject();
+    if (candidateObj.resumeUrl) {
+      candidateObj.viewUrl = `/api/candidates/${candidateObj._id}/view-resume`;
+    }
+    res.status(201).json(candidateObj);
   } catch (error) {
     res.status(400).json({ message: 'Error creating candidate', error: error.message });
   }
@@ -112,9 +129,14 @@ export async function createCandidateWithResume(req, res) {
     const candidate = new Candidate(candidateData);
     await candidate.save();
 
+    // Return response with view URL for frontend
+    const candidateResponse = candidate.toObject();
+    // Keep original Cloudinary URL for download, but provide view endpoint
+    candidateResponse.viewUrl = `/api/candidates/${candidate._id}/view-resume`;
+
     res.status(201).json({
       message: 'Candidate created successfully with resume parsing',
-      candidate,
+      candidate: candidateResponse,
       parsedData: parsedData
     });
   } catch (error) {
@@ -195,7 +217,11 @@ export async function updateCandidate(req, res) {
       return res.status(404).json({ message: 'Candidate not found' });
     }
 
-    res.json(candidate);
+    const candidateObj = candidate.toObject();
+    if (candidateObj.resumeUrl) {
+      candidateObj.viewUrl = `/api/candidates/${candidateObj._id}/view-resume`;
+    }
+    res.json(candidateObj);
   } catch (error) {
     res.status(400).json({ message: 'Error updating candidate', error: error.message });
   }
