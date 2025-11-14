@@ -47,7 +47,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only PDF and DOCX files are allowed.'), false);
+    cb(new Error('Invalid file type. Only PDF, DOC, and DOCX files are allowed.'), false);
   }
 };
 

@@ -24,6 +24,7 @@ async function downloadFile(url) {
  */
 export async function extractTextFromFile(filePath, mimeType) {
   try {
+    console.log('Extracting text from file:', { filePath, mimeType });
     let dataBuffer;
     
     // Check if filePath is a URL (Cloudinary)
@@ -36,10 +37,13 @@ export async function extractTextFromFile(filePath, mimeType) {
     }
 
     if (mimeType === 'application/pdf') {
+      console.log('Parsing PDF file');
       const data = await pdfParse(dataBuffer);
+      console.log('PDF parsed successfully, text length:', data.text.length);
       return data.text;
     } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                mimeType === 'application/msword') {
+      console.log('Parsing DOC/DOCX file');
       // For DOCX, if it's a URL, we need to save temporarily
       if (filePath.startsWith('http')) {
         const tempPath = `/tmp/temp-resume-${Date.now()}.docx`;
@@ -47,16 +51,20 @@ export async function extractTextFromFile(filePath, mimeType) {
         const result = await mammoth.extractRawText({ path: tempPath });
         // Clean up temp file
         await fs.unlink(tempPath).catch(() => {});
+        console.log('DOC/DOCX parsed successfully from URL, text length:', result.value.length);
         return result.value;
       } else {
         const result = await mammoth.extractRawText({ path: filePath });
+        console.log('DOC/DOCX parsed successfully from local file, text length:', result.value.length);
         return result.value;
       }
     }
+    console.log('Unsupported file type, returning empty string');
     return '';
   } catch (error) {
     console.error('Error extracting text from file:', error);
-    throw error;
+    // Return empty string instead of throwing to prevent crashing the entire process
+    return '';
   }
 }
 
@@ -64,6 +72,14 @@ export async function extractTextFromFile(filePath, mimeType) {
  * Parse work experience from resume text
  */
 function parseWorkExperience(text, lines) {
+  console.log('Parsing work experience, lines count:', lines ? lines.length : 0);
+  
+  // Handle empty input
+  if (!text || !lines || lines.length === 0) {
+    console.log('Empty input for work experience, returning empty array');
+    return [];
+  }
+  
   const workExperience = [];
   
   // Find the work experience section
@@ -228,6 +244,7 @@ function parseWorkExperience(text, lines) {
     job.description = job.description.slice(0, 3).join(' | ');
   });
   
+  console.log('Parsed work experience count:', workExperience.length);
   return workExperience;
 }
 
@@ -235,6 +252,24 @@ function parseWorkExperience(text, lines) {
  * Parse resume text to extract candidate information
  */
 export function parseResumeData(text) {
+  console.log('Parsing resume data, text length:', text ? text.length : 0);
+  
+  // Handle empty text
+  if (!text || text.trim() === '') {
+    console.log('Empty text provided, returning default data');
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      skills: [],
+      experience: 0,
+      workExperience: [],
+      education: '',
+      location: '',
+      summary: ''
+    };
+  }
+  
   const data = {
     name: '',
     email: '',
@@ -246,12 +281,13 @@ export function parseResumeData(text) {
     location: '',
     summary: ''
   };
-
+  
   // Extract email
   const emailRegex = /[\w\.-]+@[\w\.-]+\.\w+/;
   const emailMatch = text.match(emailRegex);
   if (emailMatch) {
     data.email = emailMatch[0];
+    console.log('Extracted email:', data.email);
   }
 
   // Extract phone number (various formats)
@@ -621,5 +657,6 @@ export function parseResumeData(text) {
     }
   }
 
+  console.log('Final parsed data:', data);
   return data;
 }
