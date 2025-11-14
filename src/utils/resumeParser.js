@@ -24,7 +24,7 @@ async function downloadFile(url) {
  */
 export async function extractTextFromFile(filePath, mimeType) {
   try {
-    console.log('Extracting text from file:', { filePath, mimeType });
+    // console.log('Extracting text from file:', { filePath, mimeType });
     let dataBuffer;
     
     // Check if filePath is a URL (Cloudinary)
@@ -37,13 +37,13 @@ export async function extractTextFromFile(filePath, mimeType) {
     }
 
     if (mimeType === 'application/pdf') {
-      console.log('Parsing PDF file');
+      // console.log('Parsing PDF file');
       const data = await pdfParse(dataBuffer);
-      console.log('PDF parsed successfully, text length:', data.text.length);
+      // console.log('PDF parsed successfully, text length:', data.text.length);
       return data.text;
     } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                mimeType === 'application/msword') {
-      console.log('Parsing DOC/DOCX file');
+      // console.log('Parsing DOC/DOCX file');
       // For DOCX, if it's a URL, we need to save temporarily
       if (filePath.startsWith('http')) {
         const tempPath = `/tmp/temp-resume-${Date.now()}.docx`;
@@ -51,18 +51,18 @@ export async function extractTextFromFile(filePath, mimeType) {
         const result = await mammoth.extractRawText({ path: tempPath });
         // Clean up temp file
         await fs.unlink(tempPath).catch(() => {});
-        console.log('DOC/DOCX parsed successfully from URL, text length:', result.value.length);
+        //console.log('DOC/DOCX parsed successfully from URL, text length:', result.value.length);
         return result.value;
       } else {
         const result = await mammoth.extractRawText({ path: filePath });
-        console.log('DOC/DOCX parsed successfully from local file, text length:', result.value.length);
+        //console.log('DOC/DOCX parsed successfully from local file, text length:', result.value.length);
         return result.value;
       }
     }
-    console.log('Unsupported file type, returning empty string');
+    //console.log('Unsupported file type, returning empty string');
     return '';
   } catch (error) {
-    console.error('Error extracting text from file:', error);
+    //console.error('Error extracting text from file:', error);
     // Return empty string instead of throwing to prevent crashing the entire process
     return '';
   }
@@ -72,11 +72,11 @@ export async function extractTextFromFile(filePath, mimeType) {
  * Parse work experience from resume text
  */
 function parseWorkExperience(text, lines) {
-  console.log('Parsing work experience, lines count:', lines ? lines.length : 0);
+  //console.log('Parsing work experience, lines count:', lines ? lines.length : 0);
   
   // Handle empty input
   if (!text || !lines || lines.length === 0) {
-    console.log('Empty input for work experience, returning empty array');
+   // console.log('Empty input for work experience, returning empty array');
     return [];
   }
   
@@ -85,7 +85,8 @@ function parseWorkExperience(text, lines) {
   // Find the work experience section
   const experienceKeywords = [
     'work experience', 'professional experience', 'employment history',
-    'work history', 'experience', 'employment', 'career history'
+    'work history', 'experience', 'employment', 'career history', 
+    'professional background', 'job history'
   ];
   
   let experienceStartIndex = -1;
@@ -97,7 +98,7 @@ function parseWorkExperience(text, lines) {
     if (experienceKeywords.some(keyword => 
       lineLower === keyword || 
       lineLower === keyword + ':' ||
-      (lineLower.length < 30 && lineLower.startsWith(keyword))
+      (lineLower.length < 40 && lineLower.startsWith(keyword))
     )) {
       experienceStartIndex = i;
       break;
@@ -107,13 +108,13 @@ function parseWorkExperience(text, lines) {
   if (experienceStartIndex === -1) return workExperience;
   
   // Find end of experience section (next major section)
-  const sectionHeaders = ['education', 'skills', 'certifications', 'projects', 'achievements'];
+  const sectionHeaders = ['education', 'skills', 'certifications', 'projects', 'achievements', 'languages'];
   for (let i = experienceStartIndex + 1; i < lines.length; i++) {
     const lineLower = lines[i].toLowerCase().trim();
     if (sectionHeaders.some(header => 
       lineLower === header || 
       lineLower === header + ':' ||
-      (lineLower.length < 30 && lineLower.startsWith(header))
+      (lineLower.length < 40 && lineLower.startsWith(header))
     )) {
       experienceEndIndex = i;
       break;
@@ -123,128 +124,167 @@ function parseWorkExperience(text, lines) {
   // Parse individual job entries
   const experienceLines = lines.slice(experienceStartIndex + 1, experienceEndIndex);
   
-  let currentJob = null;
+  // Identify job boundaries by looking for date patterns
+  let jobBoundaries = [];
   
   for (let i = 0; i < experienceLines.length; i++) {
     const line = experienceLines[i].trim();
     if (!line) continue;
     
-    // Check if this line contains a date range (likely a job entry)
+    // Check if this line contains a date range
     const datePatterns = [
-      /(\w+\s+\d{4})\s*[-–—]\s*(\w+\s+\d{4}|present|current)/i,  // Jan 2020 - Dec 2022
-      /(\d{4})\s*[-–—]\s*(\d{4}|present|current)/i,                // 2020 - 2022
-      /(\d{2}\/\d{4})\s*[-–—]\s*(\d{2}\/\d{4}|present|current)/i  // 01/2020 - 12/2022
+      /(\w+\s+\d{4})\s*[-–—]\s*(\w+\s+\d{4}|present|current)/i,
+      /(\d{4})\s*[-–—]\s*(\d{4}|present|current)/i,
+      /(\d{2}\/\d{4})\s*[-–—]\s*(\d{2}\/\d{4}|present|current)/i,
+      /(\w+\s+\d{4})\s*to\s*(\w+\s+\d{4}|present|current)/i,
+      /(\d{4})\s*to\s*(\d{4}|present|current)/i
     ];
     
     const hasDateRange = datePatterns.some(pattern => pattern.test(line));
     
-    // If we found a new job entry, save the previous one
-    if (hasDateRange && currentJob) {
-      workExperience.push(currentJob);
-      currentJob = null;
+    if (hasDateRange) {
+      jobBoundaries.push(i);
     }
+  }
+  
+  // If no date boundaries found, try to identify jobs by job title patterns
+  if (jobBoundaries.length === 0) {
+    const jobTitlePatterns = [
+      /(?:Senior|Junior|Lead|Principal|Head|Chief|Manager|Director|Engineer|Developer|Designer|Analyst|Consultant|Specialist|Architect|Associate|Intern)/i
+    ];
     
-    // Try to identify company, position, and duration
-    if (!currentJob || hasDateRange) {
-      // Extract date range
-      let duration = '';
+    for (let i = 0; i < experienceLines.length; i++) {
+      const line = experienceLines[i].trim();
+      if (!line) continue;
+      
+      const hasJobTitle = jobTitlePatterns.some(pattern => pattern.test(line));
+      
+      if (hasJobTitle) {
+        jobBoundaries.push(i);
+      }
+    }
+  }
+  
+  // If still no boundaries, return empty array
+  if (jobBoundaries.length === 0) {
+    return workExperience;
+  }
+  
+  // Process each job section
+  for (let i = 0; i < jobBoundaries.length; i++) {
+    const startIndex = jobBoundaries[i];
+    const endIndex = i < jobBoundaries.length - 1 ? jobBoundaries[i + 1] : experienceLines.length;
+    
+    const jobLines = experienceLines.slice(startIndex, endIndex).filter(line => line.trim());
+    if (jobLines.length === 0) continue;
+    
+    let job = {
+      company: '',
+      position: '',
+      duration: '',
+      description: []
+    };
+    
+    // Look for date line in job lines
+    let dateLineIndex = -1;
+    let dateLine = '';
+    
+    for (let j = 0; j < jobLines.length; j++) {
+      const line = jobLines[j];
+      const datePatterns = [
+        /(\w+\s+\d{4})\s*[-–—]\s*(\w+\s+\d{4}|present|current)/i,
+        /(\d{4})\s*[-–—]\s*(\d{4}|present|current)/i,
+        /(\d{2}\/\d{4})\s*[-–—]\s*(\d{2}\/\d{4}|present|current)/i,
+        /(\w+\s+\d{4})\s*to\s*(\w+\s+\d{4}|present|current)/i,
+        /(\d{4})\s*to\s*(\d{4}|present|current)/i
+      ];
+      
       for (const pattern of datePatterns) {
         const match = line.match(pattern);
         if (match) {
-          duration = match[0];
+          dateLineIndex = j;
+          dateLine = line;
+          job.duration = match[0];
           break;
         }
       }
-      
-      if (duration) {
-        // Look for position (usually before or after the date)
-        const positionPatterns = [
-          /([A-Z][\w\s&-]+(?:Engineer|Developer|Designer|Manager|Lead|Analyst|Specialist|Consultant|Architect|Director))/,
-          /([A-Z][\w\s&-]+(?:position|role))/i
-        ];
-        
-        let position = '';
-        let company = '';
-        
-        // Check current line for position
-        for (const pattern of positionPatterns) {
-          const match = line.match(pattern);
-          if (match) {
-            position = match[1].trim();
-            break;
-          }
-        }
-        
-        // Look for company (usually has "Inc", "LLC", "Ltd", or is capitalized)
-        const companyPatterns = [
-          /([A-Z][\w\s&.]+(?:Inc|LLC|Ltd|Corporation|Corp|Company|Co\.|Solutions|Technologies|Tech|Systems|Services|Group))/,
-          /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/  // Multi-word capitalized names
-        ];
-        
-        // Check previous line for company
-        if (i > 0) {
-          const prevLine = experienceLines[i - 1].trim();
-          for (const pattern of companyPatterns) {
-            const match = prevLine.match(pattern);
-            if (match) {
-              company = match[1].trim();
-              break;
-            }
-          }
-        }
-        
-        // Check current line for company if not found
-        if (!company) {
-          for (const pattern of companyPatterns) {
-            const match = line.match(pattern);
-            if (match && match[1] !== position) {
-              company = match[1].trim();
-              break;
-            }
-          }
-        }
-        
-        // Check next line for company if still not found
-        if (!company && i < experienceLines.length - 1) {
-          const nextLine = experienceLines[i + 1].trim();
-          for (const pattern of companyPatterns) {
-            const match = nextLine.match(pattern);
-            if (match) {
-              company = match[1].trim();
-              break;
-            }
-          }
-        }
-        
-        currentJob = {
-          company: company || 'Unknown Company',
-          position: position || 'Unknown Position',
-          duration: duration,
-          description: []
-        };
+      if (dateLineIndex !== -1) break;
+    }
+    
+    // Extract position and company
+    if (dateLineIndex !== -1) {
+      // Position is usually the line before the date line
+      if (dateLineIndex > 0) {
+        job.position = jobLines[dateLineIndex - 1].trim();
       }
-    } else if (currentJob) {
-      // Add description lines (bullet points or paragraphs)
-      if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
-        currentJob.description.push(line.replace(/^[•\-*]\s*/, '').trim());
-      } else if (line.length > 20 && !line.match(/^[A-Z\s]+$/)) {
-        // Add as description if it's not all caps (likely a section header)
-        currentJob.description.push(line);
+      
+      // Company is often in the date line or before it
+      // Look for company patterns in the date line
+      const companyPattern = /([A-Z][\w\s&\-.,]*?(?:Inc|LLC|Ltd|Corporation|Corp|Company|Co\.|Solutions|Technologies|Tech|Systems|Services|Group|University|College|School))/i;
+      const companyMatch = dateLine.match(companyPattern);
+      
+      if (companyMatch) {
+        job.company = companyMatch[1].trim();
+      } else if (dateLineIndex > 1) {
+        // Try the line before position
+        job.company = jobLines[dateLineIndex - 2].trim();
+      }
+      
+      // Extract descriptions (lines after date line)
+      const postDateLines = jobLines.slice(dateLineIndex + 1);
+      for (const line of postDateLines) {
+        // Skip empty lines
+        if (!line.trim()) continue;
+        
+        // Check if it's a bullet point
+        if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*') || line.startsWith('–')) {
+          job.description.push(line.replace(/^[•\-*–]\s*/, '').trim());
+        } else if (line.length > 20 && 
+                   !line.match(/^[A-Z\s]+$/) && 
+                   !line.includes('@') && 
+                   !line.includes('www') && 
+                   !line.match(/^\d{3}[-.\s]?\d{3}[-.\s]?\d{4}$/)) {
+          // Add as description if it looks like a description line
+          job.description.push(line.trim());
+        }
+      }
+    } else {
+      // No date line found, try to parse as best we can
+      if (jobLines.length > 0) {
+        job.position = jobLines[0].trim();
+        if (jobLines.length > 1) {
+          // Look for company pattern
+          const companyPattern = /([A-Z][\w\s&\-.,]*?(?:Inc|LLC|Ltd|Corporation|Corp|Company|Co\.|Solutions|Technologies|Tech|Systems|Services|Group|University|College|School))/i;
+          const companyMatch = jobLines[1].match(companyPattern);
+          if (companyMatch) {
+            job.company = companyMatch[1].trim();
+          } else {
+            job.company = jobLines[1].trim();
+          }
+        }
+        // Try to find descriptions in remaining lines
+        for (let j = 2; j < jobLines.length; j++) {
+          const line = jobLines[j].trim();
+          if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*') || line.startsWith('–')) {
+            job.description.push(line.replace(/^[•\-*–]\s*/, '').trim());
+          } else if (line.length > 20) {
+            job.description.push(line);
+          }
+        }
       }
     }
+    
+    // Clean up and set defaults
+    job.company = job.company || 'Unknown Company';
+    job.position = job.position || 'Unknown Position';
+    
+    // Limit descriptions to 10 items max
+    job.description = job.description.slice(0, 10);
+    
+    workExperience.push(job);
   }
   
-  // Add the last job
-  if (currentJob) {
-    workExperience.push(currentJob);
-  }
-  
-  // Clean up descriptions - limit to 3 bullet points per job
-  workExperience.forEach(job => {
-    job.description = job.description.slice(0, 3).join(' | ');
-  });
-  
-  console.log('Parsed work experience count:', workExperience.length);
+  // console.log('Parsed work experience count:', workExperience.length);
   return workExperience;
 }
 
@@ -252,11 +292,11 @@ function parseWorkExperience(text, lines) {
  * Parse resume text to extract candidate information
  */
 export function parseResumeData(text) {
-  console.log('Parsing resume data, text length:', text ? text.length : 0);
+  // console.log('Parsing resume data, text length:', text ? text.length : 0);
   
   // Handle empty text
   if (!text || text.trim() === '') {
-    console.log('Empty text provided, returning default data');
+    // console.log('Empty text provided, returning default data');
     return {
       name: '',
       email: '',
@@ -287,7 +327,7 @@ export function parseResumeData(text) {
   const emailMatch = text.match(emailRegex);
   if (emailMatch) {
     data.email = emailMatch[0];
-    console.log('Extracted email:', data.email);
+    // console.log('Extracted email:', data.email);
   }
 
   // Extract phone number (various formats)
@@ -657,6 +697,6 @@ export function parseResumeData(text) {
     }
   }
 
-  console.log('Final parsed data:', data);
+  // console.log('Final parsed data:', data);
   return data;
 }
