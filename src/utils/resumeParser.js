@@ -72,11 +72,11 @@ export async function extractTextFromFile(filePath, mimeType) {
  * Parse work experience from resume text
  */
 function parseWorkExperience(text, lines) {
-  //console.log('Parsing work experience, lines count:', lines ? lines.length : 0);
+  console.log('Parsing work experience, lines count:', lines ? lines.length : 0);
   
   // Handle empty input
   if (!text || !lines || lines.length === 0) {
-   // console.log('Empty input for work experience, returning empty array');
+    console.log('Empty input for work experience, returning empty array');
     return [];
   }
   
@@ -278,13 +278,13 @@ function parseWorkExperience(text, lines) {
     job.company = job.company || 'Unknown Company';
     job.position = job.position || 'Unknown Position';
     
-    // Limit descriptions to 10 items max
-    job.description = job.description.slice(0, 10);
+    // Limit descriptions to 10 items max and JOIN them into a single string
+    job.description = job.description.slice(0, 10).join(' | ');
     
     workExperience.push(job);
   }
   
-  // console.log('Parsed work experience count:', workExperience.length);
+  console.log('Parsed work experience count:', workExperience.length);
   return workExperience;
 }
 

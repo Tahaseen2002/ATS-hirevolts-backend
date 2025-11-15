@@ -34,9 +34,20 @@ const jobSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
-  salary: {
+  // Replace single salary field with minSalary and maxSalary
+  minSalary: {
+    type: Number,
+    required: false
+  },
+  maxSalary: {
+    type: Number,
+    required: false
+  },
+  // Add client field for company information
+  client: {
     type: String,
-    required: true
+    required: false,
+    trim: true
   },
   postedDate: {
     type: Date,

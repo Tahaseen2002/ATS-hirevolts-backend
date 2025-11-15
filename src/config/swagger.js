@@ -117,7 +117,7 @@ const options = {
         },
         Job: {
           type: 'object',
-          required: ['title', 'department', 'location', 'type', 'description', 'salary'],
+          required: ['title', 'department', 'location', 'type', 'description'],
           properties: {
             _id: {
               type: 'string',
@@ -163,10 +163,21 @@ const options = {
               description: 'Job requirements',
               example: ['5+ years experience', 'React expertise']
             },
-            salary: {
+            // Replace salary field with minSalary, maxSalary, and client
+            minSalary: {
+              type: 'number',
+              description: 'Minimum salary budget',
+              example: 100000
+            },
+            maxSalary: {
+              type: 'number',
+              description: 'Maximum salary budget',
+              example: 150000
+            },
+            client: {
               type: 'string',
-              description: 'Salary range',
-              example: '$100k - $150k'
+              description: 'Client company for this job',
+              example: 'Tech Corp'
             },
             postedDate: {
               type: 'string',

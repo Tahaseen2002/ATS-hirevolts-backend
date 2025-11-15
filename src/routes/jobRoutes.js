@@ -78,7 +78,6 @@ router.get('/:id', getJobById);
  *               - location
  *               - type
  *               - description
- *               - salary
  *             properties:
  *               title:
  *                 type: string
@@ -105,9 +104,15 @@ router.get('/:id', getJobById);
  *                 items:
  *                   type: string
  *                 example: ["5+ years experience", "React expertise", "Team leadership"]
- *               salary:
+ *               minSalary:
+ *                 type: number
+ *                 example: 100000
+ *               maxSalary:
+ *                 type: number
+ *                 example: 150000
+ *               client:
  *                 type: string
- *                 example: $100k - $150k
+ *                 example: Tech Corp
  *     responses:
  *       201:
  *         description: Job created successfully
@@ -159,7 +164,11 @@ router.post('/', createJob);
  *                 type: array
  *                 items:
  *                   type: string
- *               salary:
+ *               minSalary:
+ *                 type: number
+ *               maxSalary:
+ *                 type: number
+ *               client:
  *                 type: string
  *     responses:
  *       200:
